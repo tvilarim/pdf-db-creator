@@ -2,7 +2,7 @@ import os
 import fitz  # PyMuPDF
 import pandas as pd
 from flask import Flask, request, redirect, render_template, flash
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from werkzeug.utils import secure_filename
 
 UPLOAD_FOLDER = 'uploads'
@@ -29,19 +29,14 @@ def extract_pdf_data(pdf_path):
         text = page.get_text("text")  # Extração de texto
         content.append(text)
         
-        # Verificar se há imagens (exemplo para ilustrar, se necessário)
-        images = page.get_images(full=True)
-        for image in images:
-            img_bytes = doc.extract_image(image[0])['image']
-
     return "\n".join(content)
 
-# Função para verificar se o arquivo já existe no banco de dados
+# Função para verificar se o arquivo já existe no banco de dados usando query segura
 def file_exists(file_id, file_content):
-    query = f"SELECT * FROM pdf_data WHERE file_id = '{file_id}' OR content = '{file_content}'"
-    df = pd.read_sql(query, con=engine)
+    query = text("SELECT * FROM pdf_data WHERE file_id = :file_id OR content = :file_content")
+    result = pd.read_sql(query, con=engine, params={"file_id": file_id, "file_content": file_content})
     
-    return not df.empty
+    return not result.empty
 
 # Função para salvar no banco de dados
 def save_to_db(file_id, file_content):
@@ -56,16 +51,19 @@ def save_to_db(file_id, file_content):
 @app.route('/', methods=['GET', 'POST'])
 def upload_file():
     if request.method == 'POST':
+        # Verifica se um arquivo foi enviado
         if 'file' not in request.files:
             flash('Nenhum arquivo enviado')
             return redirect(request.url)
         
         file = request.files['file']
         
+        # Verifica se um arquivo foi selecionado
         if file.filename == '':
             flash('Nenhum arquivo selecionado')
             return redirect(request.url)
         
+        # Verifica se a extensão do arquivo é permitida
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
@@ -74,7 +72,7 @@ def upload_file():
             # Extrair conteúdo do PDF
             file_content = extract_pdf_data(filepath)
             
-            # Gerar um ID único para o arquivo
+            # Gerar um ID único para o arquivo (baseado no nome do arquivo)
             file_id = os.path.splitext(filename)[0]
             
             # Salvar conteúdo no banco de dados, se não existir duplicata
@@ -96,4 +94,4 @@ def view_data():
 if __name__ == '__main__':
     if not os.path.exists(UPLOAD_FOLDER):
         os.makedirs(UPLOAD_FOLDER)
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=5000, debug=True)  # Ativando modo debug para logs
