@@ -7,6 +7,7 @@ import pandas as pd
 from flask import Flask, request, redirect, render_template, flash
 from sqlalchemy import create_engine, text
 from werkzeug.utils import secure_filename
+import re
 
 # Configurações gerais do Flask e banco de dados
 UPLOAD_FOLDER = 'uploads'
@@ -32,6 +33,16 @@ def create_table():
 # Função para verificar extensão permitida
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+# Função para pré-processar o texto extraído e remover sujeira
+def clean_text(text):
+    # Substituir múltiplas quebras de linha por uma única
+    text = re.sub(r'\\n+', ' ', text)
+    text = re.sub(r'\n+', ' ', text)  # Substituir quebras de linha reais
+    text = re.sub(r'\s+', ' ', text)  # Remover espaços em branco extras
+    text = text.replace('\\', '')  # Remover barras invertidas extras
+    text = text.strip()  # Remover espaços em branco nas extremidades
+    return text
 
 # Função para extrair conteúdo do PDF usando vários métodos (PyMuPDF + OCR)
 def extract_pdf_data(pdf_path):
@@ -65,7 +76,11 @@ def extract_pdf_data(pdf_path):
             if ocr_text.strip():  # Se o OCR encontrou texto, adiciona ao conteúdo
                 content.append(ocr_text)
     
-    return "\n".join(content)
+    # Concatenar todo o conteúdo e limpar o texto
+    raw_content = "\n".join(content)
+    cleaned_content = clean_text(raw_content)
+    
+    return cleaned_content
 
 # Função para verificar se o arquivo já existe no banco de dados usando query segura
 def file_exists(file_id, file_content):
@@ -101,11 +116,6 @@ def upload_file():
             filename = secure_filename(file.filename)
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
-            
-            # Verificar se o arquivo foi salvo corretamente
-            if not os.path.exists(filepath):
-                flash(f'Erro ao salvar o arquivo: {filename}')
-                return redirect('/')
             
             # Renderizar uma página informando que o processamento está em andamento
             return render_template('processing.html', filename=filename)
