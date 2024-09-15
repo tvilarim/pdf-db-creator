@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pdf-db-creator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pdf-db-creator
+  template:
+    metadata:
+      labels:
+        app: pdf-db-creator
+        version: v1.0
+    spec:
+      containers:
+      - name: pdf-db-creator-container
+        image: pdf-db-creator:latest
+        ports:
+        - containerPort: 5000
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
