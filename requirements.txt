@@ -1,4 +1,6 @@
 Flask
 PyMuPDF
-Pandas
+pytesseract
+Pillow
+pandas
 SQLAlchemy
