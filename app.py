@@ -117,18 +117,27 @@ def upload_file():
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
             
-            # Extrair conteúdo do PDF
-            file_content = extract_pdf_data(filepath)
-            
-            # Gerar um ID único para o arquivo
-            file_id = os.path.splitext(filename)[0]
-            
-            # Salvar conteúdo no banco de dados, se não existir duplicata
-            save_to_db(file_id, file_content)
-            
-            return redirect('/')
+            # Renderizar uma página informando que o processamento está em andamento
+            return render_template('processing.html', filename=filename)
     
     return render_template('upload.html')
+
+# Rota para processar o arquivo (separada para permitir exibição do feedback ao usuário)
+@app.route('/process_file/<filename>', methods=['GET'])
+def process_file(filename):
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    
+    # Extrair conteúdo do PDF
+    file_content = extract_pdf_data(filepath)
+    
+    # Gerar um ID único para o arquivo
+    file_id = os.path.splitext(filename)[0]
+    
+    # Salvar conteúdo no banco de dados, se não existir duplicata
+    save_to_db(file_id, file_content)
+    
+    # Redirecionar para a página de visualização após o processamento
+    return redirect('/view-data')
 
 # Rota para visualizar os dados salvos no banco de dados
 @app.route('/view-data')

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Processando PDF</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        padding-top: 50px;
+      }
+    </style>
+    <script type="text/javascript">
+      // Redirecionar automaticamente para a rota de processamento
+      window.onload = function() {
+        setTimeout(function() {
+          window.location.href = "/process_file/{{ filename }}";
+        }, 1000);  // 1 segundo de atraso antes de iniciar o processamento
+      };
+    </script>
+  </head>
+  <body>
+    <h1>Aguarde...</h1>
+    <p>Seu arquivo está sendo processado. Isso pode levar algum tempo, por favor aguarde.</p>
+    <p>Você será redirecionado automaticamente após a conclusão do processamento.</p>
+  </body>
+</html>
