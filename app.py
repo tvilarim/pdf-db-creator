@@ -4,8 +4,6 @@ import pytesseract
 from PIL import Image
 import io
 import pandas as pd
-import re
-import unidecode  # Para normalização do texto
 from flask import Flask, request, redirect, render_template, flash
 from sqlalchemy import create_engine, text
 from werkzeug.utils import secure_filename
@@ -34,15 +32,6 @@ def create_table():
 # Função para verificar extensão permitida
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-# Função para pré-processar o texto extraído
-def clean_text(text):
-    # Substituir caracteres indesejados e normalizar o texto
-    text = unidecode.unidecode(text)  # Remove acentuação e normaliza o texto
-    text = text.replace("\n", " ")    # Substitui quebras de linha por espaço
-    text = re.sub(r'\s+', ' ', text)  # Remove espaços em branco extras
-    text = re.sub(r'[^a-zA-Z0-9À-ÿ\s]', '', text)  # Remove caracteres especiais
-    return text.strip()
 
 # Função para extrair conteúdo do PDF usando vários métodos (PyMuPDF + OCR)
 def extract_pdf_data(pdf_path):
@@ -76,11 +65,7 @@ def extract_pdf_data(pdf_path):
             if ocr_text.strip():  # Se o OCR encontrou texto, adiciona ao conteúdo
                 content.append(ocr_text)
     
-    # Concatenar o conteúdo extraído e limpar o texto
-    raw_content = "\n".join(content)
-    cleaned_content = clean_text(raw_content)
-    
-    return cleaned_content
+    return "\n".join(content)
 
 # Função para verificar se o arquivo já existe no banco de dados usando query segura
 def file_exists(file_id, file_content):
@@ -117,6 +102,11 @@ def upload_file():
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
             
+            # Verificar se o arquivo foi salvo corretamente
+            if not os.path.exists(filepath):
+                flash(f'Erro ao salvar o arquivo: {filename}')
+                return redirect('/')
+            
             # Renderizar uma página informando que o processamento está em andamento
             return render_template('processing.html', filename=filename)
     
@@ -126,6 +116,11 @@ def upload_file():
 @app.route('/process_file/<filename>', methods=['GET'])
 def process_file(filename):
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    
+    # Verificar se o arquivo existe antes de tentar processá-lo
+    if not os.path.exists(filepath):
+        flash(f'O arquivo {filename} não foi encontrado.')
+        return redirect('/')
     
     # Extrair conteúdo do PDF
     file_content = extract_pdf_data(filepath)
