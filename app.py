@@ -26,7 +26,9 @@ def create_table():
         conn.execute(text('''
             CREATE TABLE IF NOT EXISTS pdf_data (
                 file_id TEXT PRIMARY KEY,
-                content TEXT
+                content TEXT,
+                data_inicial TEXT,
+                data_final TEXT
             )
         '''))
 
@@ -41,6 +43,21 @@ def clean_text(text):
     text = re.sub(r'\s+', ' ', text)   # Remove espaços em branco extras
     text = text.replace('\\', '')      # Remove barras invertidas extras
     return text.strip()                # Remove espaços em branco nas extremidades
+
+# Função para extrair datas do conteúdo do PDF
+def extract_dates(text):
+    # Regex para datas no formato dd/mm/aaaa
+    date_pattern = r'\d{2}/\d{2}/\d{4}'
+    
+    # Procurar data de início após "Data de início:"
+    data_inicial = re.search(r'Data de início:\s*(' + date_pattern + ')', text)
+    data_inicial = data_inicial.group(1) if data_inicial else None
+    
+    # Procurar data de conclusão após "Conclusão Efetiva:"
+    data_final = re.search(r'Conclusão Efetiva:\s*(' + date_pattern + ')', text)
+    data_final = data_final.group(1) if data_final else None
+    
+    return data_inicial, data_final
 
 # Função para extrair conteúdo do PDF usando vários métodos (PyMuPDF + OCR)
 def extract_pdf_data(pdf_path):
@@ -78,7 +95,10 @@ def extract_pdf_data(pdf_path):
     raw_content = "\n".join(content)
     cleaned_content = clean_text(raw_content)
     
-    return cleaned_content
+    # Extrair datas do texto limpo
+    data_inicial, data_final = extract_dates(cleaned_content)
+    
+    return cleaned_content, data_inicial, data_final
 
 # Função para verificar se o arquivo já existe no banco de dados usando query segura
 def file_exists(file_id, file_content):
@@ -88,11 +108,11 @@ def file_exists(file_id, file_content):
     return not result.empty
 
 # Função para salvar no banco de dados
-def save_to_db(file_id, file_content):
+def save_to_db(file_id, file_content, data_inicial, data_final):
     if file_exists(file_id, file_content):
         flash('Arquivo já existe no banco de dados e não será salvo novamente.')
     else:
-        df = pd.DataFrame({'file_id': [file_id], 'content': [file_content]})
+        df = pd.DataFrame({'file_id': [file_id], 'content': [file_content], 'data_inicial': [data_inicial], 'data_final': [data_final]})
         df.to_sql('pdf_data', con=engine, if_exists='append', index=False)
         flash('Arquivo processado e salvo com sucesso!')
 
@@ -145,14 +165,14 @@ def process_file(filename):
         flash(f'O arquivo {filename} não foi encontrado.')
         return redirect('/')
     
-    # Extrair conteúdo do PDF
-    file_content = extract_pdf_data(filepath)
+    # Extrair conteúdo e datas do PDF
+    file_content, data_inicial, data_final = extract_pdf_data(filepath)
     
     # Gerar um ID único para o arquivo
     file_id = os.path.splitext(filename)[0]
     
-    # Salvar conteúdo no banco de dados, se não existir duplicata
-    save_to_db(file_id, file_content)
+    # Salvar conteúdo e datas no banco de dados, se não existir duplicata
+    save_to_db(file_id, file_content, data_inicial, data_final)
     
     # Redirecionar para a página de visualização após o processamento
     return redirect('/view-data')
