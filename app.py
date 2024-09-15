@@ -1,7 +1,7 @@
 import os
 import fitz  # PyMuPDF
 import pandas as pd
-from flask import Flask, request, redirect, render_template, flash, jsonify
+from flask import Flask, request, redirect, render_template, flash
 from sqlalchemy import create_engine
 from werkzeug.utils import secure_filename
 
@@ -36,10 +36,21 @@ def extract_pdf_data(pdf_path):
 
     return "\n".join(content)
 
+# Função para verificar se o arquivo já existe no banco de dados
+def file_exists(file_id, file_content):
+    query = f"SELECT * FROM pdf_data WHERE file_id = '{file_id}' OR content = '{file_content}'"
+    df = pd.read_sql(query, con=engine)
+    
+    return not df.empty
+
 # Função para salvar no banco de dados
 def save_to_db(file_id, file_content):
-    df = pd.DataFrame({'file_id': [file_id], 'content': [file_content]})
-    df.to_sql('pdf_data', con=engine, if_exists='append', index=False)
+    if file_exists(file_id, file_content):
+        flash('Arquivo já existe no banco de dados e não será salvo novamente.')
+    else:
+        df = pd.DataFrame({'file_id': [file_id], 'content': [file_content]})
+        df.to_sql('pdf_data', con=engine, if_exists='append', index=False)
+        flash('Arquivo processado e salvo com sucesso!')
 
 # Rota principal para upload de arquivos
 @app.route('/', methods=['GET', 'POST'])
@@ -66,15 +77,14 @@ def upload_file():
             # Gerar um ID único para o arquivo
             file_id = os.path.splitext(filename)[0]
             
-            # Salvar conteúdo no banco de dados
+            # Salvar conteúdo no banco de dados, se não existir duplicata
             save_to_db(file_id, file_content)
             
-            flash('Arquivo processado e salvo com sucesso!')
             return redirect('/')
     
     return render_template('upload.html')
 
-# Nova rota para visualizar os dados salvos no banco de dados
+# Rota para visualizar os dados salvos no banco de dados
 @app.route('/view-data')
 def view_data():
     query = "SELECT * FROM pdf_data"
