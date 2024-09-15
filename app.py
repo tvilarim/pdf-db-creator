@@ -4,6 +4,8 @@ import pytesseract
 from PIL import Image
 import io
 import pandas as pd
+import re
+import unidecode  # Para normalização do texto
 from flask import Flask, request, redirect, render_template, flash
 from sqlalchemy import create_engine, text
 from werkzeug.utils import secure_filename
@@ -33,6 +35,15 @@ def create_table():
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+# Função para pré-processar o texto extraído
+def clean_text(text):
+    # Substituir caracteres indesejados e normalizar o texto
+    text = unidecode.unidecode(text)  # Remove acentuação e normaliza o texto
+    text = text.replace("\n", " ")    # Substitui quebras de linha por espaço
+    text = re.sub(r'\s+', ' ', text)  # Remove espaços em branco extras
+    text = re.sub(r'[^a-zA-Z0-9À-ÿ\s]', '', text)  # Remove caracteres especiais
+    return text.strip()
+
 # Função para extrair conteúdo do PDF usando vários métodos (PyMuPDF + OCR)
 def extract_pdf_data(pdf_path):
     doc = fitz.open(pdf_path)
@@ -61,11 +72,15 @@ def extract_pdf_data(pdf_path):
             
             # Abrir a imagem extraída com PIL para realizar OCR
             image = Image.open(io.BytesIO(image_bytes))
-            ocr_text = pytesseract.image_to_string(image)
+            ocr_text = pytesseract.image_to_string(image, lang="por")  # Usando OCR com língua portuguesa
             if ocr_text.strip():  # Se o OCR encontrou texto, adiciona ao conteúdo
                 content.append(ocr_text)
     
-    return "\n".join(content)
+    # Concatenar o conteúdo extraído e limpar o texto
+    raw_content = "\n".join(content)
+    cleaned_content = clean_text(raw_content)
+    
+    return cleaned_content
 
 # Função para verificar se o arquivo já existe no banco de dados usando query segura
 def file_exists(file_id, file_content):

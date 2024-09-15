@@ -4,3 +4,7 @@ pytesseract
 Pillow
 pandas
 SQLAlchemy
+unidecode
+pymupdf
+pytesseract
+Pillow
