@@ -15,6 +15,16 @@ app.secret_key = 'supersecretkey'
 
 engine = create_engine(app.config['DATABASE'])
 
+# Função para criar a tabela se ela não existir
+def create_table():
+    with engine.connect() as conn:
+        conn.execute(text('''
+            CREATE TABLE IF NOT EXISTS pdf_data (
+                file_id TEXT PRIMARY KEY,
+                content TEXT
+            )
+        '''))
+
 # Função para verificar extensão permitida
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -51,19 +61,16 @@ def save_to_db(file_id, file_content):
 @app.route('/', methods=['GET', 'POST'])
 def upload_file():
     if request.method == 'POST':
-        # Verifica se um arquivo foi enviado
         if 'file' not in request.files:
             flash('Nenhum arquivo enviado')
             return redirect(request.url)
         
         file = request.files['file']
         
-        # Verifica se um arquivo foi selecionado
         if file.filename == '':
             flash('Nenhum arquivo selecionado')
             return redirect(request.url)
         
-        # Verifica se a extensão do arquivo é permitida
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
@@ -72,7 +79,7 @@ def upload_file():
             # Extrair conteúdo do PDF
             file_content = extract_pdf_data(filepath)
             
-            # Gerar um ID único para o arquivo (baseado no nome do arquivo)
+            # Gerar um ID único para o arquivo
             file_id = os.path.splitext(filename)[0]
             
             # Salvar conteúdo no banco de dados, se não existir duplicata
@@ -94,4 +101,8 @@ def view_data():
 if __name__ == '__main__':
     if not os.path.exists(UPLOAD_FOLDER):
         os.makedirs(UPLOAD_FOLDER)
-    app.run(host='0.0.0.0', port=5000, debug=True)  # Ativando modo debug para logs
+    
+    # Criar a tabela se ela não existir
+    create_table()
+    
+    app.run(host='0.0.0.0', port=5000, debug=True)
