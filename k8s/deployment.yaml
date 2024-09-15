@@ -11,11 +11,11 @@ spec:
     metadata:
       labels:
         app: pdf-db-creator
-        version: v1.1
+        version: v1.3
     spec:
       containers:
       - name: pdf-db-creator-container
-        image: pdf-db-creator:latest
+        image: tvilarim/pdf-db-creator:latest
         ports:
         - containerPort: 5000
         resources:
