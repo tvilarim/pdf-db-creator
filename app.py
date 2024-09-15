@@ -36,13 +36,11 @@ def allowed_file(filename):
 
 # Função para pré-processar o texto extraído e remover sujeira
 def clean_text(text):
-    # Substituir múltiplas quebras de linha por uma única
-    text = re.sub(r'\\n+', ' ', text)
-    text = re.sub(r'\n+', ' ', text)  # Substituir quebras de linha reais
-    text = re.sub(r'\s+', ' ', text)  # Remover espaços em branco extras
-    text = text.replace('\\', '')  # Remover barras invertidas extras
-    text = text.strip()  # Remover espaços em branco nas extremidades
-    return text
+    text = re.sub(r'\\n+', ' ', text)  # Substitui múltiplas quebras de linha por espaço
+    text = re.sub(r'\n+', ' ', text)   # Substitui quebras de linha reais por espaço
+    text = re.sub(r'\s+', ' ', text)   # Remove espaços em branco extras
+    text = text.replace('\\', '')      # Remove barras invertidas extras
+    return text.strip()                # Remove espaços em branco nas extremidades
 
 # Função para extrair conteúdo do PDF usando vários métodos (PyMuPDF + OCR)
 def extract_pdf_data(pdf_path):
@@ -115,7 +113,22 @@ def upload_file():
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(filepath)
+
+            # Certifique-se de que o diretório de upload existe
+            if not os.path.exists(app.config['UPLOAD_FOLDER']):
+                os.makedirs(app.config['UPLOAD_FOLDER'])
+
+            # Salvar o arquivo no diretório correto
+            try:
+                file.save(filepath)
+            except Exception as e:
+                flash(f'Erro ao salvar o arquivo: {str(e)}')
+                return redirect('/')
+            
+            # Verificar se o arquivo foi salvo corretamente
+            if not os.path.exists(filepath):
+                flash(f'Erro ao salvar o arquivo: {filename}')
+                return redirect('/')
             
             # Renderizar uma página informando que o processamento está em andamento
             return render_template('processing.html', filename=filename)
@@ -154,6 +167,7 @@ def view_data():
     return render_template('view_data.html', tables=[df.to_html(classes='data', header=True)], titles=df.columns.values)
 
 if __name__ == '__main__':
+    # Certificar-se de que o diretório de upload existe
     if not os.path.exists(UPLOAD_FOLDER):
         os.makedirs(UPLOAD_FOLDER)
     
