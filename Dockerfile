@@ -1,9 +1,10 @@
 # Usando uma imagem Python leve
 FROM python:3.9-slim
 
-# Atualizar e instalar dependências do sistema necessárias para o Tesseract
+# Atualizar e instalar dependências do sistema necessárias para o Tesseract e os idiomas
 RUN apt-get update && apt-get install -y \
     tesseract-ocr \
+    tesseract-ocr-por \
     libtesseract-dev \
     libleptonica-dev \
     pkg-config \
