@@ -20,9 +20,9 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['DATABASE'] = 'sqlite:///pdf_data.db'
 app.secret_key = 'supersecretkey'
 
-# Configurações do Celery
-app.config['CELERY_BROKER_URL'] = 'redis://localhost:6379/0'
-app.config['CELERY_RESULT_BACKEND'] = 'redis://localhost:6379/0'
+# Configurações do Celery para conectar-se ao serviço Redis no Kubernetes
+app.config['CELERY_BROKER_URL'] = 'redis://redis:6379/0'
+app.config['CELERY_RESULT_BACKEND'] = 'redis://redis:6379/0'
 
 # Inicializar o Celery
 celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'])

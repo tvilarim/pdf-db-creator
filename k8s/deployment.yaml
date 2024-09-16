@@ -11,7 +11,7 @@ spec:
     metadata:
       labels:
         app: pdf-db-creator
-        version: v1.22 # incluindo o módulo celery no requirements
+        version: v1.23 # Redis e Celery
     spec:
       containers:
       - name: pdf-db-creator-container
