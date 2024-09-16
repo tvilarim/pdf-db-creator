@@ -2,7 +2,7 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: pdf-db-creator-hpa
-  version: v1.28
+  version: v1.29
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
