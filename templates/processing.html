@@ -11,17 +11,10 @@
         padding-top: 50px;
       }
     </style>
-    <script type="text/javascript">
-      // Redirecionar automaticamente para a finalização do processamento
-      window.onload = function() {
-        setTimeout(function() {
-          window.location.href = "/finish_processing/{{ filename }}";
-        }, 1000);  // Atraso de 1 segundo
-      };
-    </script>
   </head>
   <body>
-    <h1>Aguarde...</h1>
-    <p>Seu arquivo está sendo processado. Isso pode levar alguns minutos.</p>
+    <h1>{{ status }}</h1>
+    <p>Aguarde enquanto seu arquivo está sendo processado.</p>
+    <p>Isso pode levar alguns minutos dependendo do tamanho do arquivo.</p>
   </body>
 </html>

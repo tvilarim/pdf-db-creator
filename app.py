@@ -8,6 +8,7 @@ from flask import Flask, request, redirect, render_template, flash, url_for
 from sqlalchemy import create_engine, text
 from werkzeug.utils import secure_filename
 import re
+from celery import Celery
 from datetime import datetime
 
 # Configurações gerais do Flask e banco de dados
@@ -18,6 +19,14 @@ app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['DATABASE'] = 'sqlite:///pdf_data.db'
 app.secret_key = 'supersecretkey'
+
+# Configurações do Celery
+app.config['CELERY_BROKER_URL'] = 'redis://localhost:6379/0'
+app.config['CELERY_RESULT_BACKEND'] = 'redis://localhost:6379/0'
+
+# Inicializar o Celery
+celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'])
+celery.conf.update(app.config)
 
 engine = create_engine(app.config['DATABASE'])
 
@@ -117,6 +126,24 @@ def save_to_db(file_id, file_content, data_inicial, data_final):
         df.to_sql('pdf_data', con=engine, if_exists='append', index=False)
         flash('Arquivo processado e salvo com sucesso!')
 
+# Tarefa Celery para processar o arquivo PDF em segundo plano
+@celery.task
+def process_pdf_task(filename):
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    
+    # Verificar se o arquivo existe antes de tentar processá-lo
+    if not os.path.exists(filepath):
+        raise FileNotFoundError(f"O arquivo {filename} não foi encontrado.")
+    
+    # Extrair conteúdo e datas do PDF
+    file_content, data_inicial, data_final = extract_pdf_data(filepath)
+    
+    # Gerar um ID único para o arquivo
+    file_id = os.path.splitext(filename)[0]
+    
+    # Salvar conteúdo e datas no banco de dados, se não existir duplicata
+    save_to_db(file_id, file_content, data_inicial, data_final)
+
 # Rota principal para upload de arquivos
 @app.route('/', methods=['GET', 'POST'])
 def upload_file():
@@ -146,59 +173,57 @@ def upload_file():
                 flash(f'Erro ao salvar o arquivo: {str(e)}')
                 return redirect('/')
             
-            # Verificar se o arquivo foi salvo corretamente
-            if not os.path.exists(filepath):
-                flash(f'Erro ao salvar o arquivo: {filename}')
-                return redirect('/')
-
-            # Processar o arquivo após o upload
-            return redirect(url_for('process_file', filename=filename))
+            # Iniciar o processamento do PDF em segundo plano com Celery
+            task = process_pdf_task.delay(filename)
+            
+            # Redirecionar para a página de "Aguarde" e informar o usuário
+            return redirect(url_for('processing_status', task_id=task.id))
     
     return render_template('upload.html')
 
-# Rota para processar o arquivo
-@app.route('/process_file/<filename>', methods=['GET'])
-def process_file(filename):
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+# Rota para exibir o status do processamento
+@app.route('/processing/<task_id>', methods=['GET'])
+def processing_status(task_id):
+    task = process_pdf_task.AsyncResult(task_id)
     
-    # Verificar se o arquivo existe antes de tentar processá-lo
-    if not os.path.exists(filepath):
-        flash(f'O arquivo {filename} não foi encontrado.')
-        return redirect('/')
+    if task.state == 'PENDING':
+        # A tarefa ainda está em execução
+        return render_template('processing.html', status="Processando...", task_id=task_id)
     
-    # Renderizar a página de "Aguarde" enquanto processa o arquivo
-    return render_template('processing.html', filename=filename)
+    elif task.state == 'SUCCESS':
+        # O processamento foi concluído, redirecionar para a página de busca
+        return redirect(url_for('search'))
+    
+    else:
+        # Ocorreu um erro durante o processamento
+        return render_template('processing.html', status="Erro no processamento", task_id=task_id)
 
-# Rota para finalizar o processamento e redirecionar para view-data
-@app.route('/finish_processing/<filename>', methods=['GET'])
-def finish_processing(filename):
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+# Rota para buscar os arquivos processados no banco de dados
+@app.route('/search', methods=['GET', 'POST'])
+def search():
+    if request.method == 'POST':
+        search_text = request.form['search_text']
+        search_date = request.form['search_date']
+        
+        # Consulta ao banco de dados com filtro de texto e data
+        query = text('''
+            SELECT file_id FROM pdf_data
+            WHERE content LIKE :search_text
+            AND :search_date BETWEEN data_inicial AND data_final
+        ''')
+        
+        # Executa a consulta
+        results = pd.read_sql(query, con=engine, params={
+            'search_text': f'%{search_text}%',
+            'search_date': search_date
+        })
+        
+        # Converter os resultados em uma lista de nomes de arquivos
+        file_ids = results['file_id'].tolist()
+        
+        return render_template('search.html', results=file_ids)
     
-    # Verificar se o arquivo existe
-    if not os.path.exists(filepath):
-        flash(f'O arquivo {filename} não foi encontrado.')
-        return redirect('/')
-    
-    # Extrair conteúdo e datas do PDF
-    file_content, data_inicial, data_final = extract_pdf_data(filepath)
-    
-    # Gerar um ID único para o arquivo
-    file_id = os.path.splitext(filename)[0]
-    
-    # Salvar conteúdo e datas no banco de dados, se não existir duplicata
-    save_to_db(file_id, file_content, data_inicial, data_final)
-    
-    # Redirecionar para a página de visualização após o processamento
-    return redirect('/view-data')
-
-# Rota para visualizar os dados salvos no banco de dados
-@app.route('/view-data')
-def view_data():
-    query = "SELECT * FROM pdf_data"
-    df = pd.read_sql(query, con=engine)
-    
-    # Exibir os dados como uma tabela HTML
-    return render_template('view_data.html', tables=[df.to_html(classes='data', header=True)], titles=df.columns.values)
+    return render_template('search.html')
 
 if __name__ == '__main__':
     # Certificar-se de que o diretório de upload existe
