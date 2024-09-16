@@ -11,13 +11,18 @@ spec:
     metadata:
       labels:
         app: pdf-db-creator
-        version: v1.26 # ajustes em dependencias
+        version: v1.26
     spec:
       containers:
       - name: pdf-db-creator-container
         image: tvilarim/pdf-db-creator:latest
         ports:
         - containerPort: 5000
+        env:
+        - name: CELERY_BROKER_URL
+          value: "redis://redis:6379/0"
+        - name: CELERY_RESULT_BACKEND
+          value: "redis://redis:6379/0"
         resources:
           requests:
             cpu: "200m"
@@ -25,8 +30,3 @@ spec:
           limits:
             cpu: "500m"
             memory: "512Mi"
-        env:
-        - name: CELERY_BROKER_URL
-          value: "redis://redis:6379/0"
-        - name: CELERY_RESULT_BACKEND
-          value: "redis://redis:6379/0"

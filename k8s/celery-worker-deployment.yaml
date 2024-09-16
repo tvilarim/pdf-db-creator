@@ -16,6 +16,11 @@ spec:
       - name: celery-worker-container
         image: tvilarim/pdf-db-creator:latest
         command: ["celery", "-A", "app.celery", "worker", "--loglevel=info"]
+        env:
+        - name: CELERY_BROKER_URL
+          value: "redis://redis:6379/0"
+        - name: CELERY_RESULT_BACKEND
+          value: "redis://redis:6379/0"
         resources:
           requests:
             cpu: "200m"

@@ -3,10 +3,11 @@ kind: Service
 metadata:
   name: pdf-db-creator
 spec:
-  type: LoadBalancer
+  type: NodePort
   selector:
     app: pdf-db-creator
   ports:
     - protocol: TCP
-      port: 80
+      port: 5000  # Porta do container Flask
       targetPort: 5000
+      nodePort: 30000  # Porta externa que será acessível
