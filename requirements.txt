@@ -1,5 +1,6 @@
 Flask
 Celery
+redis
 PyMuPDF
 pytesseract
 Pillow
