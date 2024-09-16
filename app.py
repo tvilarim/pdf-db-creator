@@ -150,13 +150,13 @@ def upload_file():
             if not os.path.exists(filepath):
                 flash(f'Erro ao salvar o arquivo: {filename}')
                 return redirect('/')
-            
-            # Redirecionar para a página de processamento
+
+            # Processar o arquivo após o upload
             return redirect(url_for('process_file', filename=filename))
     
     return render_template('upload.html')
 
-# Rota para processar o arquivo e redirecionar após o processamento
+# Rota para processar o arquivo
 @app.route('/process_file/<filename>', methods=['GET'])
 def process_file(filename):
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)

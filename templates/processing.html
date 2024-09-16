@@ -12,17 +12,16 @@
       }
     </style>
     <script type="text/javascript">
-      // Redirecionar automaticamente para a rota de processamento
+      // Redirecionar automaticamente para a finalização do processamento
       window.onload = function() {
         setTimeout(function() {
-          window.location.href = "/process_file/{{ filename }}";
-        }, 1000);  // 1 segundo de atraso antes de iniciar o processamento
+          window.location.href = "/finish_processing/{{ filename }}";
+        }, 1000);  // Atraso de 1 segundo
       };
     </script>
   </head>
   <body>
     <h1>Aguarde...</h1>
-    <p>Seu arquivo está sendo processado. Isso pode levar algum tempo, por favor aguarde.</p>
-    <p>Você será redirecionado automaticamente após a conclusão do processamento.</p>
+    <p>Seu arquivo está sendo processado. Isso pode levar alguns minutos.</p>
   </body>
 </html>
