@@ -11,6 +11,7 @@ spec:
     metadata:
       labels:
         app: pdf-db-creator
+        version: v1.30
     spec:
       containers:
       - name: pdf-db-creator-container
@@ -19,7 +20,7 @@ spec:
         - containerPort: 5000
         volumeMounts:
         - name: uploads-volume
-          mountPath: /app/uploads  # Caminho compartilhado para os uploads
+          mountPath: /app/uploads  # O caminho onde os arquivos são salvos
       volumes:
       - name: uploads-volume
-        emptyDir: {}  # Volume temporário compartilhado entre os containers
+        emptyDir: {}  # Volume temporário que será compartilhado entre containers

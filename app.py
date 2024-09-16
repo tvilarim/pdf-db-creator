@@ -12,7 +12,7 @@ from celery import Celery
 from datetime import datetime
 
 # Configurações gerais do Flask e banco de dados
-UPLOAD_FOLDER = 'uploads'
+UPLOAD_FOLDER = '/app/uploads'  # Caminho consistente entre Flask e Celery
 ALLOWED_EXTENSIONS = {'pdf'}
 
 app = Flask(__name__)

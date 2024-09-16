@@ -18,7 +18,7 @@ spec:
         command: ["celery", "-A", "app.celery", "worker", "--loglevel=info"]
         volumeMounts:
         - name: uploads-volume
-          mountPath: /app/uploads  # O mesmo caminho de uploads
+          mountPath: /app/uploads  # O mesmo caminho de uploads para o Celery
       volumes:
       - name: uploads-volume
         emptyDir: {}  # Mesma configuração de volume compartilhado
