@@ -122,9 +122,12 @@ def save_to_db(file_id, file_content, data_inicial, data_final):
     if file_exists(file_id, file_content):
         flash('Arquivo já existe no banco de dados e não será salvo novamente.')
     else:
-        df = pd.DataFrame({'file_id': [file_id], 'content': [file_content], 'data_inicial': [data_inicial], 'data_final': [data_final]})
-        df.to_sql('pdf_data', con=engine, if_exists='append', index=False)
-        flash('Arquivo processado e salvo com sucesso!')
+        try:
+            df = pd.DataFrame({'file_id': [file_id], 'content': [file_content], 'data_inicial': [data_inicial], 'data_final': [data_final]})
+            df.to_sql('pdf_data', con=engine, if_exists='append', index=False)
+            flash('Arquivo processado e salvo com sucesso!')
+        except Exception as e:
+            flash(f'Erro ao salvar os dados no banco: {str(e)}')
 
 # Tarefa Celery para processar o arquivo PDF em segundo plano
 @celery.task
@@ -135,14 +138,19 @@ def process_pdf_task(filename):
     if not os.path.exists(filepath):
         raise FileNotFoundError(f"O arquivo {filename} não foi encontrado.")
     
-    # Extrair conteúdo e datas do PDF
-    file_content, data_inicial, data_final = extract_pdf_data(filepath)
+    try:
+        # Extrair conteúdo e datas do PDF
+        file_content, data_inicial, data_final = extract_pdf_data(filepath)
+        
+        # Gerar um ID único para o arquivo
+        file_id = os.path.splitext(filename)[0]
+        
+        # Salvar conteúdo e datas no banco de dados, se não existir duplicata
+        save_to_db(file_id, file_content, data_inicial, data_final)
+        return "Processamento concluído com sucesso"
     
-    # Gerar um ID único para o arquivo
-    file_id = os.path.splitext(filename)[0]
-    
-    # Salvar conteúdo e datas no banco de dados, se não existir duplicata
-    save_to_db(file_id, file_content, data_inicial, data_final)
+    except Exception as e:
+        raise Exception(f"Erro durante o processamento do arquivo {filename}: {str(e)}")
 
 # Rota principal para upload de arquivos
 @app.route('/', methods=['GET', 'POST'])
@@ -171,6 +179,11 @@ def upload_file():
                 file.save(filepath)
             except Exception as e:
                 flash(f'Erro ao salvar o arquivo: {str(e)}')
+                return redirect('/')
+            
+            # Verificar se o arquivo foi realmente salvo
+            if not os.path.exists(filepath):
+                flash(f'Erro: o arquivo {filename} não foi salvo corretamente.')
                 return redirect('/')
             
             # Iniciar o processamento do PDF em segundo plano com Celery

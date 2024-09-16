@@ -11,7 +11,7 @@ spec:
     metadata:
       labels:
         app: redis
-        version: v1.27
+        version: v1.28
     spec:
       containers:
       - name: redis

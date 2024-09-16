@@ -11,22 +11,16 @@ spec:
     metadata:
       labels:
         app: pdf-db-creator
-        version: v1.27
+        version: v1.23
     spec:
       containers:
       - name: pdf-db-creator-container
         image: tvilarim/pdf-db-creator:latest
         ports:
         - containerPort: 5000
-        env:
-        - name: CELERY_BROKER_URL
-          value: "redis://redis:6379/0"
-        - name: CELERY_RESULT_BACKEND
-          value: "redis://redis:6379/0"
-        resources:
-          requests:
-            cpu: "200m"
-            memory: "256Mi"
-          limits:
-            cpu: "500m"
-            memory: "512Mi"
+        volumeMounts:
+        - name: uploads-volume
+          mountPath: /app/uploads  # O caminho onde os arquivos serão salvos no container
+      volumes:
+      - name: uploads-volume
+        emptyDir: {}  # Volume temporário compartilhado entre os containers

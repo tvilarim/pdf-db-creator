@@ -11,7 +11,6 @@ spec:
     metadata:
       labels:
         app: celery-worker
-        version: v1.27
     spec:
       containers:
       - name: celery-worker-container
@@ -22,10 +21,9 @@ spec:
           value: "redis://redis:6379/0"
         - name: CELERY_RESULT_BACKEND
           value: "redis://redis:6379/0"
-        resources:
-          requests:
-            cpu: "200m"
-            memory: "256Mi"
-          limits:
-            cpu: "500m"
-            memory: "512Mi"
+        volumeMounts:
+        - name: uploads-volume
+          mountPath: /app/uploads  # O mesmo caminho de uploads
+      volumes:
+      - name: uploads-volume
+        emptyDir: {}  # Mesma configuração de volume compartilhado
