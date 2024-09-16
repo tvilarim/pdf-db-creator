@@ -11,7 +11,7 @@ spec:
     metadata:
       labels:
         app: pdf-db-creator
-        version: v1.24 # redis - ajustes no projeto todo
+        version: v1.25 # redis - ajustes no projeto todo
     spec:
       containers:
       - name: pdf-db-creator-container
