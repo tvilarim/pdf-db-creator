@@ -4,7 +4,7 @@ import pytesseract
 from PIL import Image
 import io
 import pandas as pd
-from flask import Flask, request, redirect, render_template, flash
+from flask import Flask, request, redirect, render_template, flash, url_for
 from sqlalchemy import create_engine, text
 from werkzeug.utils import secure_filename
 import re
@@ -151,17 +151,30 @@ def upload_file():
                 flash(f'Erro ao salvar o arquivo: {filename}')
                 return redirect('/')
             
-            # Renderizar uma página informando que o processamento está em andamento
-            return render_template('processing.html', filename=filename)
+            # Redirecionar para a página de processamento
+            return redirect(url_for('process_file', filename=filename))
     
     return render_template('upload.html')
 
-# Rota para processar o arquivo (separada para permitir exibição do feedback ao usuário)
+# Rota para processar o arquivo e redirecionar após o processamento
 @app.route('/process_file/<filename>', methods=['GET'])
 def process_file(filename):
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     
     # Verificar se o arquivo existe antes de tentar processá-lo
+    if not os.path.exists(filepath):
+        flash(f'O arquivo {filename} não foi encontrado.')
+        return redirect('/')
+    
+    # Renderizar a página de "Aguarde" enquanto processa o arquivo
+    return render_template('processing.html', filename=filename)
+
+# Rota para finalizar o processamento e redirecionar para view-data
+@app.route('/finish_processing/<filename>', methods=['GET'])
+def finish_processing(filename):
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    
+    # Verificar se o arquivo existe
     if not os.path.exists(filepath):
         flash(f'O arquivo {filename} não foi encontrado.')
         return redirect('/')
@@ -186,33 +199,6 @@ def view_data():
     
     # Exibir os dados como uma tabela HTML
     return render_template('view_data.html', tables=[df.to_html(classes='data', header=True)], titles=df.columns.values)
-
-# Rota para a página de busca
-@app.route('/search', methods=['GET', 'POST'])
-def search():
-    if request.method == 'POST':
-        search_text = request.form['search_text']
-        search_date = request.form['search_date']
-        
-        # Consulta ao banco de dados com filtro de texto e data
-        query = text('''
-            SELECT file_id FROM pdf_data
-            WHERE content LIKE :search_text
-            AND :search_date BETWEEN data_inicial AND data_final
-        ''')
-        
-        # Executa a consulta
-        results = pd.read_sql(query, con=engine, params={
-            'search_text': f'%{search_text}%',
-            'search_date': search_date
-        })
-        
-        # Converter os resultados em uma lista de nomes de arquivos
-        file_ids = results['file_id'].tolist()
-        
-        return render_template('search.html', results=file_ids)
-    
-    return render_template('search.html')
 
 if __name__ == '__main__':
     # Certificar-se de que o diretório de upload existe
