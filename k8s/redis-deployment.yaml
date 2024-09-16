@@ -11,6 +11,7 @@ spec:
     metadata:
       labels:
         app: redis
+        version: v1.27
     spec:
       containers:
       - name: redis
@@ -29,4 +30,3 @@ spec:
     - protocol: TCP
       port: 6379
       targetPort: 6379
-  

@@ -11,7 +11,7 @@ spec:
     metadata:
       labels:
         app: pdf-db-creator
-        version: v1.26
+        version: v1.27
     spec:
       containers:
       - name: pdf-db-creator-container
