@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Busca de PDFs</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        padding-top: 50px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Buscar Arquivos PDF</h1>
+    <form method="POST" action="/search">
+      <label for="search_text">Buscar texto:</label>
+      <input type="text" id="search_text" name="search_text" required>
+      <br><br>
+      <label for="search_date">Data:</label>
+      <input type="date" id="search_date" name="search_date" required>
+      <br><br>
+      <input type="submit" value="Buscar">
+    </form>
+
+    {% if results %}
+    <h2>Resultados da Busca</h2>
+    <ul>
+      {% for result in results %}
+      <li>{{ result }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </body>
+</html>

@@ -8,6 +8,7 @@ from flask import Flask, request, redirect, render_template, flash
 from sqlalchemy import create_engine, text
 from werkzeug.utils import secure_filename
 import re
+from datetime import datetime
 
 # Configurações gerais do Flask e banco de dados
 UPLOAD_FOLDER = 'uploads'
@@ -185,6 +186,33 @@ def view_data():
     
     # Exibir os dados como uma tabela HTML
     return render_template('view_data.html', tables=[df.to_html(classes='data', header=True)], titles=df.columns.values)
+
+# Rota para a página de busca
+@app.route('/search', methods=['GET', 'POST'])
+def search():
+    if request.method == 'POST':
+        search_text = request.form['search_text']
+        search_date = request.form['search_date']
+        
+        # Consulta ao banco de dados com filtro de texto e data
+        query = text('''
+            SELECT file_id FROM pdf_data
+            WHERE content LIKE :search_text
+            AND :search_date BETWEEN data_inicial AND data_final
+        ''')
+        
+        # Executa a consulta
+        results = pd.read_sql(query, con=engine, params={
+            'search_text': f'%{search_text}%',
+            'search_date': search_date
+        })
+        
+        # Converter os resultados em uma lista de nomes de arquivos
+        file_ids = results['file_id'].tolist()
+        
+        return render_template('search.html', results=file_ids)
+    
+    return render_template('search.html')
 
 if __name__ == '__main__':
     # Certificar-se de que o diretório de upload existe
